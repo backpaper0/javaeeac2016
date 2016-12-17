@@ -1,15 +1,16 @@
 package com.example;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.UUID;
 
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.client.Client;
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.container.ContainerRequestFilter;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.Provider;
 
 import org.glassfish.jersey.client.oauth2.ClientIdentifier;
 import org.glassfish.jersey.client.oauth2.OAuth2ClientSupport;
@@ -22,8 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-@Provider
-public class UaaFilter implements ContainerRequestFilter {
+public class UaaFilter implements Filter {
 
     @Value("${clientId}")
     private String clientId;
@@ -44,38 +44,48 @@ public class UaaFilter implements ContainerRequestFilter {
     private Client client;
 
     @Override
-    public void filter(ContainerRequestContext requestContext) throws IOException {
-        if (accessToken.getValue() == null) {
+    public void init(FilterConfig filterConfig) throws ServletException {
+    }
 
-            MultivaluedMap<String, String> queryParameters = requestContext.getUriInfo()
-                    .getQueryParameters();
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
 
-            String code = queryParameters.getFirst("code");
-            if (code != null) {
-                ClientIdentifier clientIdentifier = new ClientIdentifier(clientId, clientSecret);
-                OAuth2CodeGrantFlow flow = OAuth2ClientSupport.authorizationCodeGrantFlowBuilder(
-                        clientIdentifier, authorizationUri, accessTokenUri)
-                        .redirectUri(redirectUri)
-                        .client(client)
-                        .property(Phase.ALL, OAuth2Parameters.STATE, state.getValue())
-                        .build();
-                String state = queryParameters.getFirst("state");
-                TokenResult tokenResult = flow.finish(code, state);
-                accessToken.setValue(tokenResult.getAccessToken());
-
-            } else {
-                state.setValue(UUID.randomUUID().toString());
-                ClientIdentifier clientIdentifier = new ClientIdentifier(clientId, clientSecret);
-                OAuth2CodeGrantFlow flow = OAuth2ClientSupport.authorizationCodeGrantFlowBuilder(
-                        clientIdentifier, authorizationUri, accessTokenUri)
-                        .redirectUri(redirectUri)
-                        .client(client)
-                        .property(Phase.ALL, OAuth2Parameters.STATE, state.getValue())
-                        .build();
-                URI location = URI.create(flow.start());
-                Response response = Response.temporaryRedirect(location).build();
-                requestContext.abortWith(response);
-            }
+        if (accessToken.getValue() != null) {
+            chain.doFilter(request, response);
+            return;
         }
+
+        String code = request.getParameter("code");
+        if (code != null) {
+            ClientIdentifier clientIdentifier = new ClientIdentifier(clientId, clientSecret);
+            OAuth2CodeGrantFlow flow = OAuth2ClientSupport.authorizationCodeGrantFlowBuilder(
+                    clientIdentifier, authorizationUri, accessTokenUri)
+                    .redirectUri(redirectUri)
+                    .client(client)
+                    .property(Phase.ALL, OAuth2Parameters.STATE, state.getValue())
+                    .build();
+            String state = request.getParameter("state");
+            TokenResult tokenResult = flow.finish(code, state);
+            accessToken.setValue(tokenResult.getAccessToken());
+            chain.doFilter(request, response);
+            return;
+
+        }
+
+        state.setValue(UUID.randomUUID().toString());
+        ClientIdentifier clientIdentifier = new ClientIdentifier(clientId, clientSecret);
+        OAuth2CodeGrantFlow flow = OAuth2ClientSupport.authorizationCodeGrantFlowBuilder(
+                clientIdentifier, authorizationUri, accessTokenUri)
+                .redirectUri(redirectUri)
+                .client(client)
+                .property(Phase.ALL, OAuth2Parameters.STATE, state.getValue())
+                .build();
+        String location = flow.start();
+        ((HttpServletResponse) response).sendRedirect(location);
+    }
+
+    @Override
+    public void destroy() {
     }
 }

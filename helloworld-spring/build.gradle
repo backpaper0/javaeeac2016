@@ -25,7 +25,7 @@ repositories {
 }
 
 dependencies {
-	compile('org.springframework.boot:spring-boot-starter-jersey')
+	compile('org.springframework.boot:spring-boot-starter-web')
     compile 'org.glassfish.jersey.security:oauth2-client:2.23.2'
     compile 'org.glassfish:javax.json:1.0.4'
 	//compile('org.springframework.cloud:spring-cloud-starter-oauth2')

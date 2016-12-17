@@ -4,18 +4,14 @@ import java.io.StringReader;
 
 import javax.json.Json;
 import javax.json.JsonObject;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
 import javax.ws.rs.client.Client;
-import javax.ws.rs.core.MediaType;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-@Component
-@Path("")
+@RestController
 public class HelloWorld {
 
     @Value("${userUri}")
@@ -24,8 +20,7 @@ public class HelloWorld {
     @Autowired
     private Client client;
 
-    @GET
-    @Produces(MediaType.TEXT_PLAIN)
+    @GetMapping
     public String home() {
         String json = client
                 .target(userUri)
