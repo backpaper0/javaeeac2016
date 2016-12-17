@@ -2,6 +2,8 @@
 
 [Java EE Advent Calendar 2016](http://qiita.com/advent-calendar/2016/javaee)の17日目です。
 
+* http://qiita.com/backpaper0@github/items/1cab8474f4764c6e1098
+
 ## 概要
 
 [Jerseyのoauth2-client](http://repo.maven.apache.org/maven2/org/glassfish/jersey/security/oauth2-client/)を使ったサンプルです。
